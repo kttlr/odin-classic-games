@@ -1,0 +1,45 @@
+# Binary files for Mac
+.DS_Store
+*.o
+*.out
+*.app
+*.dmg
+.AppleDouble
+.LSOverride
+
+# Binary files for Windows
+*.exe
+*.dll
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.suo
+*.user
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Build directories
+bin/
+build/
+out/
+dist/
+debug/
+release/
+
+# Odin specific
+*.bin
+*.pdb
+*.dll
+*.exe
+*.obj
+*.o
+*_temp/
+logs/
+
+# IDE specific
+.vscode/
+.idea/
+*.sublime-*
