@@ -1,11 +1,12 @@
 package snake
 
+import fmt "core:fmt"
 import rl "vendor:raylib"
 
-WINDOW_SIZE :: 1000
+WINDOW_SIZE :: 500
 GRID_WIDTH :: 20
 CELL_SIZE :: 16
-CANVAS_WIDTH :: GRID_WIDTH * CELL_SIZE
+CANVAS_SIZE :: GRID_WIDTH * CELL_SIZE
 MAX_SNAKE_LENGTH :: GRID_WIDTH * GRID_WIDTH
 
 TICK_RATE :: 0.15
@@ -19,6 +20,29 @@ move_direction: Vec2i
 game_over: bool
 food_pos: Vec2i
 
+place_food :: proc() {
+    occupied: [GRID_WIDTH][GRID_WIDTH]bool
+
+    for i in 0 ..< snake_length {
+        occupied[snake[i].x][snake[i].y] = true
+    }
+
+    free_cells := make([dynamic]Vec2i, context.temp_allocator)
+
+    for x in 0 ..< GRID_WIDTH {
+        for y in 0 ..< GRID_WIDTH {
+            if !occupied[x][y] {
+                append(&free_cells, Vec2i{x, y})
+            }
+        }
+    }
+
+    if len(free_cells) > 0 {
+        random_cell_idx := rl.GetRandomValue(0, i32(len(free_cells)) - 1)
+        food_pos = free_cells[random_cell_idx]
+    }
+}
+
 restart :: proc() {
     start_head_pos := Vec2i{GRID_WIDTH / 2, GRID_WIDTH / 2}
     snake[0] = start_head_pos
@@ -27,6 +51,7 @@ restart :: proc() {
     snake_length = 3
     move_direction = {0, 1}
     game_over = false
+    place_food()
 }
 
 main :: proc() {
@@ -72,8 +97,19 @@ main :: proc() {
 
             for i in 1 ..< snake_length {
                 cur_pos := snake[i]
+
+                if cur_pos == head_pos {
+                    game_over = true
+                }
+
                 snake[i] = next_part_pos
                 next_part_pos = cur_pos
+            }
+
+            if head_pos == food_pos {
+                snake_length += 1
+                snake[snake_length - 1] = next_part_pos
+                place_food()
             }
 
             tick_timer = TICK_RATE + tick_timer
@@ -83,26 +119,26 @@ main :: proc() {
         rl.ClearBackground({20, 20, 20, 255})
 
         cam := rl.Camera2D {
-            zoom = f32(WINDOW_SIZE) / CANVAS_WIDTH,
+            zoom = f32(WINDOW_SIZE) / CANVAS_SIZE,
         }
 
         rl.BeginMode2D(cam)
 
         food_rect := rl.Rectangle {
-            f32(food_pos.x) * CELL_SIZE,
-            f32(food_pos.y) * CELL_SIZE,
-            CELL_SIZE,
-            CELL_SIZE,
+            f32(food_pos.x) * CELL_SIZE + 2,
+            f32(food_pos.y) * CELL_SIZE + 2,
+            CELL_SIZE - 4,
+            CELL_SIZE - 4,
         }
 
         rl.DrawRectangleRec(food_rect, rl.RED)
 
         for i in 0 ..< snake_length {
             part_rect := rl.Rectangle {
-                f32(snake[i].x) * CELL_SIZE,
-                f32(snake[i].y) * CELL_SIZE,
-                CELL_SIZE,
-                CELL_SIZE,
+                f32(snake[i].x) * CELL_SIZE + 1,
+                f32(snake[i].y) * CELL_SIZE + 1,
+                CELL_SIZE - 2,
+                CELL_SIZE - 2,
             }
 
             rl.DrawRectangleRounded(part_rect, 0.5, 6, rl.GREEN)
@@ -112,7 +148,13 @@ main :: proc() {
             rl.DrawText("Press Enter to Restart", GRID_WIDTH / 2, GRID_WIDTH / 2 + 30, 12, rl.WHITE)
         }
 
+        score := snake_length - 3
+        score_str := fmt.ctprintf("Score: %v", score)
+        rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
+
         rl.EndMode2D()
         rl.EndDrawing()
+
+        free_all(context.temp_allocator)
     }
 }
