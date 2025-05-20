@@ -30,14 +30,24 @@ debug/
 release/
 
 # Odin specific
-*.bin
-*.pdb
-*.dll
-*.exe
-*.obj
-*.o
-*_temp/
-logs/
+**/bin/
+**/build/
+**/out/
+**/*.bin
+**/*.dll
+**/*.exe
+**/*.o
+**/*.obj
+**/*.pdb
+**/*.lib
+**/*.a
+**/*.so
+**/*.dylib
+**/*_temp/
+**/logs/
+
+# Executables
+snake/snake
 
 # IDE specific
 .vscode/
