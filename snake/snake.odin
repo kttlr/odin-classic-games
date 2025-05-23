@@ -20,8 +20,8 @@ screen_size_loc: i32
 target: rl.RenderTexture2D
 
 snake: [MAX_SNAKE_LENGTH]Vec2i
-snake_length: int
-snake_direction: string
+snake_length: int = 0
+snake_direction: string = "DOWN"
 tick_timer: f32 = TICK_RATE
 move_direction: Vec2i
 game_over: bool
