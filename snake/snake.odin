@@ -21,7 +21,6 @@ target: rl.RenderTexture2D
 
 snake: [MAX_SNAKE_LENGTH]Vec2i
 snake_length: int = 0
-snake_direction: string = "DOWN"
 tick_timer: f32 = TICK_RATE
 move_direction: Vec2i
 game_over: bool
@@ -77,7 +76,8 @@ main :: proc() {
     defer rl.UnloadSound(crash_sound)
 
     music := rl.LoadMusicStream("assets/audio/music.mp3")
-    rl.PlayMusicStream(music) // Start playing music once at the beginning
+    rl.SetMusicVolume(music, 0.4)
+    rl.PlayMusicStream(music)
     defer rl.UnloadMusicStream(music)
 
     // Load CRT shader
@@ -100,30 +100,25 @@ main :: proc() {
     restart()
 
     for !rl.WindowShouldClose() {
-        // Update music buffer and restart if it stopped
         rl.UpdateMusicStream(music)
         if !rl.IsMusicStreamPlaying(music) {
             rl.PlayMusicStream(music)
         }
 
-        if (rl.IsKeyDown(.UP) || rl.IsKeyDown(.K)) && snake_direction != "DOWN" {
+        if (rl.IsKeyDown(.UP) || rl.IsKeyDown(.K)) && move_direction != {0, 1} {
             move_direction = {0, -1}
-            snake_direction = "UP"
         }
 
-        if (rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.J)) && snake_direction != "UP" {
+        if (rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.J)) && move_direction != {0, -1} {
             move_direction = {0, 1}
-            snake_direction = "DOWN"
         }
 
-        if (rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.H)) && snake_direction != "RIGHT" {
+        if (rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.H)) && move_direction != {1, 0} {
             move_direction = {-1, 0}
-            snake_direction = "LEFT"
         }
 
-        if (rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.L)) && snake_direction != "LEFT" {
+        if (rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.L)) && move_direction != {-1, 0} {
             move_direction = {1, 0}
-            snake_direction = "RIGHT"
         }
 
         if game_over {
@@ -201,17 +196,26 @@ main :: proc() {
             }
             rl.DrawRectangleRounded(part_rect, 0.5, 6, rl.GREEN)
         }
-        if game_over {
-            rl.DrawText("Game Over", GRID_WIDTH / 2, GRID_WIDTH / 2, 18, rl.WHITE)
-            rl.DrawText("Press Enter to Restart", GRID_WIDTH / 2, GRID_WIDTH / 2 + 30, 12, rl.WHITE)
-        }
 
         score := snake_length - 3
         score_str := fmt.ctprintf("Score: %v", score)
-        direction_str := fmt.ctprintf("Direction: %v", snake_direction)
         rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
-        rl.DrawText(direction_str, 4, CANVAS_SIZE - 30, 10, rl.GRAY)
         // rl.DrawFPS(2, 2)
+
+        if game_over {
+            text1Width := rl.MeasureText("Game Over", 18)
+            text2Width := rl.MeasureText("Press Enter to Restart", 12)
+            text3Width := rl.MeasureText(score_str, 10)
+            rl.DrawText("Game Over", CANVAS_SIZE / 2 - (text1Width / 2), CANVAS_SIZE / 2 - 50, 18, rl.WHITE)
+            rl.DrawText(
+                "Press Enter to Restart",
+                CANVAS_SIZE / 2 - (text2Width / 2),
+                CANVAS_SIZE / 2 - 20,
+                12,
+                rl.WHITE,
+            )
+            rl.DrawText(score_str, CANVAS_SIZE / 2 - (text3Width / 2), CANVAS_SIZE / 2, 10, rl.WHITE)
+        }
 
         rl.EndTextureMode()
 
