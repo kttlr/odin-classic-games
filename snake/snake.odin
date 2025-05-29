@@ -124,7 +124,7 @@ main :: proc() {
     defer rl.UnloadMusicStream(music)
 
     // Load CRT shader
-    crt_shader = rl.LoadShader("shaders/simple_vertex.vert", "shaders/crt_shader.frag")
+    crt_shader = rl.LoadShader("assets/shaders/simple_vertex.vert", "assets/shaders/crt_shader.frag")
     defer rl.UnloadShader(crt_shader)
 
     // Get shader uniform locations
@@ -236,6 +236,9 @@ main :: proc() {
         // Render the game to the render texture
         rl.BeginTextureMode(target)
         rl.ClearBackground({20, 20, 20, 255})
+        
+        // Begin camera mode
+        rl.BeginMode2D(cam)
 
         // Draw food
         food_rect := rl.Rectangle {
@@ -256,6 +259,9 @@ main :: proc() {
             }
             rl.DrawRectangleRounded(part_rect, 0.5, 6, rl.GREEN)
         }
+        
+        // End camera mode
+        rl.EndMode2D()
 
         score := snake_length - 3
         score_str := fmt.ctprintf("Score: %v", score)
