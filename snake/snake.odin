@@ -1,6 +1,8 @@
 package snake
 
+import "core:encoding/json"
 import fmt "core:fmt"
+import "core:os"
 import "core:time"
 import rl "vendor:raylib"
 
@@ -11,8 +13,13 @@ CANVAS_SIZE :: GRID_WIDTH * CELL_SIZE
 MAX_SNAKE_LENGTH :: GRID_WIDTH * GRID_WIDTH
 
 TICK_RATE :: 0.13
+HIGH_SCORE_FILE :: "highscore.json"
 
 Vec2i :: [2]int
+
+High_Score :: struct {
+    score: int,
+}
 
 crt_shader: rl.Shader
 iTime_loc: i32
@@ -25,6 +32,42 @@ tick_timer: f32 = TICK_RATE
 move_direction: Vec2i
 game_over: bool
 food_pos: Vec2i
+high_score: int = 0
+
+load_high_score :: proc() -> int {
+    data, ok := os.read_entire_file_from_filename(HIGH_SCORE_FILE)
+    if !ok {
+        return 0
+    }
+    defer delete(data)
+
+    score_data: High_Score
+    unmarshal_err := json.unmarshal(data, &score_data)
+    if unmarshal_err != nil {
+        fmt.eprintln("Failed to load high score file!")
+        return 0
+    }
+
+    return score_data.score
+}
+
+save_high_score :: proc(score: int) {
+    score_data := High_Score {
+        score = score,
+    }
+
+    json_data, err := json.marshal(score_data, {pretty = true})
+    if err != nil {
+        fmt.eprintfln("Unable to marshal high score JSON: %v", err)
+        return
+    }
+    defer delete(json_data)
+
+    werr := os.write_entire_file_or_err(HIGH_SCORE_FILE, json_data)
+    if werr != nil {
+        fmt.eprintfln("Unable to write high score file: %v", werr)
+    }
+}
 
 place_food :: proc() {
     occupied: [GRID_WIDTH][GRID_WIDTH]bool
@@ -62,7 +105,7 @@ restart :: proc() {
 
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
-    rl.InitWindow(WINDOW_SIZE, WINDOW_SIZE, "Classsic Snake")
+    rl.InitWindow(WINDOW_SIZE, WINDOW_SIZE, "Snake")
     defer rl.CloseWindow()
 
     rl.InitAudioDevice()
@@ -96,6 +139,9 @@ main :: proc() {
     rl.SetTextureFilter(target.texture, .BILINEAR)
 
     start_time := time.now()
+
+    // Load high score at startup
+    high_score = load_high_score()
 
     restart()
 
@@ -137,6 +183,13 @@ main :: proc() {
             if head_pos.x < 0 || head_pos.y < 0 || head_pos.x >= GRID_WIDTH || head_pos.y >= GRID_WIDTH {
                 game_over = true
                 rl.PlaySound(crash_sound)
+
+                // Check and save high score when game ends
+                current_score := snake_length - 3
+                if current_score > high_score {
+                    high_score = current_score
+                    save_high_score(high_score)
+                }
             }
 
             for i in 1 ..< snake_length {
@@ -145,6 +198,13 @@ main :: proc() {
                 if cur_pos == head_pos {
                     game_over = true
                     rl.PlaySound(crash_sound)
+
+                    // Check and save high score when game ends
+                    current_score := snake_length - 3
+                    if current_score > high_score {
+                        high_score = current_score
+                        save_high_score(high_score)
+                    }
                 }
 
                 snake[i] = next_part_pos
@@ -199,22 +259,34 @@ main :: proc() {
 
         score := snake_length - 3
         score_str := fmt.ctprintf("Score: %v", score)
+        high_score_str := fmt.ctprintf("High Score: %v", high_score)
+
         rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
-        // rl.DrawFPS(2, 2)
+        rl.DrawText(high_score_str, 4, CANVAS_SIZE - 26, 10, rl.GRAY)
 
         if game_over {
             text1Width := rl.MeasureText("Game Over", 18)
             text2Width := rl.MeasureText("Press Enter to Restart", 12)
             text3Width := rl.MeasureText(score_str, 10)
-            rl.DrawText("Game Over", CANVAS_SIZE / 2 - (text1Width / 2), CANVAS_SIZE / 2 - 50, 18, rl.WHITE)
+            text4Width := rl.MeasureText(high_score_str, 10)
+
+            rl.DrawRectangle(0, 0, CANVAS_SIZE, CANVAS_SIZE, {0, 0, 0, 172})
+            rl.DrawText("Game Over", CANVAS_SIZE / 2 - (text1Width / 2), CANVAS_SIZE / 2 - 60, 18, rl.WHITE)
             rl.DrawText(
                 "Press Enter to Restart",
                 CANVAS_SIZE / 2 - (text2Width / 2),
-                CANVAS_SIZE / 2 - 20,
+                CANVAS_SIZE / 2 - 30,
                 12,
                 rl.WHITE,
             )
-            rl.DrawText(score_str, CANVAS_SIZE / 2 - (text3Width / 2), CANVAS_SIZE / 2, 10, rl.WHITE)
+            rl.DrawText(score_str, CANVAS_SIZE / 2 - (text3Width / 2), CANVAS_SIZE / 2 - 10, 10, rl.WHITE)
+            rl.DrawText(
+                high_score_str,
+                CANVAS_SIZE / 2 - (text4Width / 2 + 2),
+                CANVAS_SIZE / 2 + 5,
+                10,
+                rl.WHITE,
+            )
         }
 
         rl.EndTextureMode()
