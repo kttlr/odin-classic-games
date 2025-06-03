@@ -30,9 +30,9 @@ snake: [MAX_SNAKE_LENGTH]Vec2i
 snake_length: int = 0
 tick_timer: f32 = TICK_RATE
 move_direction: Vec2i
-game_over: bool
 food_pos: Vec2i
 high_score: int = 0
+game_state: i8 = 1
 
 load_high_score :: proc() -> int {
     data, ok := os.read_entire_file_from_filename(HIGH_SCORE_FILE)
@@ -99,7 +99,7 @@ restart :: proc() {
     snake[2] = start_head_pos - Vec2i{0, 2}
     snake_length = 3
     move_direction = {0, 1}
-    game_over = false
+    game_state = 1
     place_food()
 }
 
@@ -107,6 +107,8 @@ main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
     rl.InitWindow(WINDOW_SIZE, WINDOW_SIZE, "Snake")
     defer rl.CloseWindow()
+
+    rl.ChangeDirectory(rl.GetApplicationDirectory())
 
     rl.InitAudioDevice()
     defer rl.CloseAudioDevice()
@@ -123,7 +125,7 @@ main :: proc() {
     rl.PlayMusicStream(music)
     defer rl.UnloadMusicStream(music)
 
-    // Load CRT shader
+    // Load shader
     crt_shader = rl.LoadShader("assets/shaders/simple_vertex.vert", "assets/shaders/crt_shader.frag")
     defer rl.UnloadShader(crt_shader)
 
@@ -167,13 +169,20 @@ main :: proc() {
             move_direction = {1, 0}
         }
 
-        if game_over {
+        if game_state == 0 {
             if rl.IsKeyPressed(.ENTER) {
                 restart()
             }
-        } else {
+        }
+        if game_state == 1 {
+            if rl.IsKeyPressed(.ENTER) {
+                game_state = 2
+            }
+        }
+        if game_state == 2 {
             tick_timer -= rl.GetFrameTime()
         }
+
 
         if tick_timer <= 0 {
             next_part_pos := snake[0]
@@ -181,7 +190,7 @@ main :: proc() {
             head_pos := snake[0]
 
             if head_pos.x < 0 || head_pos.y < 0 || head_pos.x >= GRID_WIDTH || head_pos.y >= GRID_WIDTH {
-                game_over = true
+                game_state = 0
                 rl.PlaySound(crash_sound)
 
                 // Check and save high score when game ends
@@ -196,7 +205,7 @@ main :: proc() {
                 cur_pos := snake[i]
 
                 if cur_pos == head_pos {
-                    game_over = true
+                    game_state = 0
                     rl.PlaySound(crash_sound)
 
                     // Check and save high score when game ends
@@ -221,10 +230,6 @@ main :: proc() {
             tick_timer = TICK_RATE + tick_timer
         }
 
-        cam := rl.Camera2D {
-            zoom = 1.0,
-        }
-
         // Update shader uniforms
         elapsed := time.diff(start_time, time.now())
         seconds := f32(time.duration_seconds(elapsed))
@@ -233,44 +238,56 @@ main :: proc() {
         screen_size := [2]f32{f32(CANVAS_SIZE), f32(CANVAS_SIZE)}
         rl.SetShaderValue(crt_shader, screen_size_loc, &screen_size, .VEC2)
 
-        // Render the game to the render texture
         rl.BeginTextureMode(target)
         rl.ClearBackground({20, 20, 20, 255})
-        
-        // Begin camera mode
-        rl.BeginMode2D(cam)
 
-        // Draw food
-        food_rect := rl.Rectangle {
-            f32(food_pos.x) * CELL_SIZE + 2,
-            f32(food_pos.y) * CELL_SIZE + 2,
-            CELL_SIZE - 4,
-            CELL_SIZE - 4,
-        }
-        rl.DrawRectangleRec(food_rect, rl.RED)
-
-        // Draw snake
-        for i in 0 ..< snake_length {
-            part_rect := rl.Rectangle {
-                f32(snake[i].x) * CELL_SIZE + 1,
-                f32(snake[i].y) * CELL_SIZE + 1,
-                CELL_SIZE - 2,
-                CELL_SIZE - 2,
+        if game_state == 2 || game_state == 0 {
+            // Draw food
+            food_rect := rl.Rectangle {
+                f32(food_pos.x) * CELL_SIZE + 2,
+                f32(food_pos.y) * CELL_SIZE + 2,
+                CELL_SIZE - 4,
+                CELL_SIZE - 4,
             }
-            rl.DrawRectangleRounded(part_rect, 0.5, 6, rl.GREEN)
+            rl.DrawRectangleRec(food_rect, rl.RED)
+
+            // Draw snake
+            for i in 0 ..< snake_length {
+                part_rect := rl.Rectangle {
+                    f32(snake[i].x) * CELL_SIZE + 1,
+                    f32(snake[i].y) * CELL_SIZE + 1,
+                    CELL_SIZE - 2,
+                    CELL_SIZE - 2,
+                }
+                rl.DrawRectangleRounded(part_rect, 0.5, 6, rl.GREEN)
+            }
         }
-        
-        // End camera mode
-        rl.EndMode2D()
+
+        if game_state == 1 {
+            text1Width := rl.MeasureText("SNAKE", 24)
+            text2Width := rl.MeasureText("Press Enter to start", 12)
+
+            rl.DrawRectangle(0, 0, CANVAS_SIZE, CANVAS_SIZE, {0, 0, 0, 172})
+            rl.DrawText("SNAKE", CANVAS_SIZE / 2 - (text1Width / 2), CANVAS_SIZE / 2 - 60, 24, rl.WHITE)
+            rl.DrawText(
+                "Press Enter to Start",
+                CANVAS_SIZE / 2 - (text2Width / 2),
+                CANVAS_SIZE / 2 - 30,
+                12,
+                rl.WHITE,
+            )
+        }
 
         score := snake_length - 3
         score_str := fmt.ctprintf("Score: %v", score)
         high_score_str := fmt.ctprintf("High Score: %v", high_score)
 
-        rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
-        rl.DrawText(high_score_str, 4, CANVAS_SIZE - 26, 10, rl.GRAY)
+        if game_state == 2 {
+            rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
+            rl.DrawText(high_score_str, 4, CANVAS_SIZE - 26, 10, rl.GRAY)
+        }
 
-        if game_over {
+        if game_state == 0 {
             text1Width := rl.MeasureText("Game Over", 18)
             text2Width := rl.MeasureText("Press Enter to Restart", 12)
             text3Width := rl.MeasureText(score_str, 10)
