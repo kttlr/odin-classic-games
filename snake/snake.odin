@@ -3,8 +3,15 @@ package snake
 import "core:encoding/json"
 import fmt "core:fmt"
 import "core:os"
+import "core:strings"
 import "core:time"
 import rl "vendor:raylib"
+
+SCORE_SOUND_DATA :: #load("assets/audio/twoTone1.ogg")
+CRASH_SOUND_DATA :: #load("assets/audio/lowDown.ogg")
+MUSIC_DATA :: #load("assets/audio/music.mp3")
+VERTEX_SHADER_DATA :: #load("assets/shaders/simple_vertex.vert")
+FRAGMENT_SHADER_DATA :: #load("assets/shaders/crt_shader.frag")
 
 WINDOW_SIZE :: 800
 GRID_WIDTH :: 20
@@ -33,6 +40,8 @@ move_direction: Vec2i
 food_pos: Vec2i
 high_score: int = 0
 game_state: i8 = 1
+
+
 
 load_high_score :: proc() -> int {
     data, ok := os.read_entire_file_from_filename(HIGH_SCORE_FILE)
@@ -108,25 +117,25 @@ main :: proc() {
     rl.InitWindow(WINDOW_SIZE, WINDOW_SIZE, "Snake")
     defer rl.CloseWindow()
 
-    rl.ChangeDirectory(rl.GetApplicationDirectory())
-
     rl.InitAudioDevice()
     defer rl.CloseAudioDevice()
 
-    score_sound := rl.LoadSound("assets/audio/twoTone1.ogg")
+    score_sound := rl.LoadSoundFromWave(rl.LoadWaveFromMemory(".ogg", raw_data(SCORE_SOUND_DATA), i32(len(SCORE_SOUND_DATA))))
     rl.SetSoundVolume(score_sound, 0.2)
     defer rl.UnloadSound(score_sound)
 
-    crash_sound := rl.LoadSound("assets/audio/lowDown.ogg")
+    crash_sound := rl.LoadSoundFromWave(rl.LoadWaveFromMemory(".ogg", raw_data(CRASH_SOUND_DATA), i32(len(CRASH_SOUND_DATA))))
     defer rl.UnloadSound(crash_sound)
 
-    music := rl.LoadMusicStream("assets/audio/music.mp3")
+    music := rl.LoadMusicStreamFromMemory(".mp3", raw_data(MUSIC_DATA), i32(len(MUSIC_DATA)))
     rl.SetMusicVolume(music, 0.4)
     rl.PlayMusicStream(music)
     defer rl.UnloadMusicStream(music)
 
-    // Load shader
-    crt_shader = rl.LoadShader("assets/shaders/simple_vertex.vert", "assets/shaders/crt_shader.frag")
+    // Load shader from memory
+    vertex_shader_cstr := strings.clone_to_cstring(string(VERTEX_SHADER_DATA), context.temp_allocator)
+    fragment_shader_cstr := strings.clone_to_cstring(string(FRAGMENT_SHADER_DATA), context.temp_allocator)
+    crt_shader = rl.LoadShaderFromMemory(vertex_shader_cstr, fragment_shader_cstr)
     defer rl.UnloadShader(crt_shader)
 
     // Get shader uniform locations
