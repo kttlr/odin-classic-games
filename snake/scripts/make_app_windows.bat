@@ -36,15 +36,22 @@ if exist "build\%APP_NAME%.exe" (
 
 REM Check for custom icon
 set CUSTOM_ICON=assets\snake-app.ico
+set RESOURCE_FILE=assets\snake-app.rc
 set ICON_FLAG=
-if exist "%CUSTOM_ICON%" (
-    set ICON_FLAG=-resource:%CUSTOM_ICON%
-    echo 🎨 Custom icon found: %CUSTOM_ICON%
+if exist "%CUSTOM_ICON%" if exist "%RESOURCE_FILE%" (
+    echo 🎨 Custom icon and resource file found: %RESOURCE_FILE%
+    set ICON_FLAG=-resource:%RESOURCE_FILE%
+) else if exist "%CUSTOM_ICON%" (
+    echo ⚠️  Custom icon found but resource file missing at %RESOURCE_FILE%
+    echo    Creating Windows resource file...
+    REM The resource file should already be created, but if not, show error
+    if not exist "%RESOURCE_FILE%" (
+        echo ❌ Resource file %RESOURCE_FILE% not found. Please ensure it exists.
+        echo    The resource file is needed to embed the icon in the Windows executable.
+    )
 ) else (
     echo ⚠️  Custom icon not found at %CUSTOM_ICON%
     echo    The executable will use the default Windows application icon.
-    echo    To add a custom icon, convert your snake-app.icns to snake-app.ico
-    echo    and place it at: %CUSTOM_ICON%
 )
 
 REM Build the game executable
@@ -63,7 +70,7 @@ if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
 )
 
 REM Build with optimizations and icon (if available)
-odin build . -out:build/%APP_NAME%.exe -o:speed -no-bounds-check %TARGET_FLAG% %ICON_FLAG%
+odin build . -out:build/%APP_NAME%.exe -o:speed -no-bounds-check -subsystem:windows %TARGET_FLAG% %ICON_FLAG%
 
 if %errorlevel% neq 0 (
     echo ❌ Build failed!
@@ -78,41 +85,6 @@ echo @echo off
 echo cd /d "%%~dp0"
 echo start "" "%APP_NAME%.exe"
 ) > "build\Launch_%APP_NAME%.bat"
-
-REM Create version info file (for future use with resource compiler)
-echo 📝 Creating version info template...
-(
-echo #include ^<windows.h^>
-echo.
-echo VS_VERSION_INFO VERSIONINFO
-echo FILEVERSION 1,0,0,0
-echo PRODUCTVERSION 1,0,0,0
-echo FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
-echo FILEFLAGS 0x0L
-echo FILEOS VOS__WINDOWS32
-echo FILETYPE VFT_APP
-echo FILESUBTYPE VFT2_UNKNOWN
-echo BEGIN
-echo     BLOCK "StringFileInfo"
-echo     BEGIN
-echo         BLOCK "040904b0"
-echo         BEGIN
-echo             VALUE "CompanyName", "%COMPANY_NAME%"
-echo             VALUE "FileDescription", "Snake Game - Classic arcade game"
-echo             VALUE "FileVersion", "%VERSION%"
-echo             VALUE "InternalName", "%APP_NAME%"
-echo             VALUE "LegalCopyright", "%COPYRIGHT%"
-echo             VALUE "OriginalFilename", "%APP_NAME%.exe"
-echo             VALUE "ProductName", "Snake Game"
-echo             VALUE "ProductVersion", "%VERSION%"
-echo         END
-echo     END
-echo     BLOCK "VarFileInfo"
-echo     BEGIN
-echo         VALUE "Translation", 0x409, 1200
-echo     END
-echo END
-) > "build\version_info.rc"
 
 echo.
 echo 🎉 Windows executable created successfully!

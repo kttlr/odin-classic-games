@@ -1,0 +1,39 @@
+# Build outputs
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Windows resource compilation artifacts
+*.res
+RCa*
+app_resources.rc
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Game data (optional - uncomment if you don't want to track high scores)
+# highscore.json 
