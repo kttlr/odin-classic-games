@@ -120,11 +120,15 @@ main :: proc() {
     rl.InitAudioDevice()
     defer rl.CloseAudioDevice()
 
-    score_sound := rl.LoadSoundFromWave(rl.LoadWaveFromMemory(".ogg", raw_data(SCORE_SOUND_DATA), i32(len(SCORE_SOUND_DATA))))
+    score_sound := rl.LoadSoundFromWave(
+        rl.LoadWaveFromMemory(".ogg", raw_data(SCORE_SOUND_DATA), i32(len(SCORE_SOUND_DATA))),
+    )
     rl.SetSoundVolume(score_sound, 0.2)
     defer rl.UnloadSound(score_sound)
 
-    crash_sound := rl.LoadSoundFromWave(rl.LoadWaveFromMemory(".ogg", raw_data(CRASH_SOUND_DATA), i32(len(CRASH_SOUND_DATA))))
+    crash_sound := rl.LoadSoundFromWave(
+        rl.LoadWaveFromMemory(".ogg", raw_data(CRASH_SOUND_DATA), i32(len(CRASH_SOUND_DATA))),
+    )
     defer rl.UnloadSound(crash_sound)
 
     music := rl.LoadMusicStreamFromMemory(".mp3", raw_data(MUSIC_DATA), i32(len(MUSIC_DATA)))
@@ -293,7 +297,9 @@ main :: proc() {
 
         if game_state == 2 {
             rl.DrawText(score_str, 4, CANVAS_SIZE - 14, 10, rl.GRAY)
-            rl.DrawText(high_score_str, 4, CANVAS_SIZE - 26, 10, rl.GRAY)
+            if high_score > 0 {
+                rl.DrawText(high_score_str, 4, CANVAS_SIZE - 26, 10, rl.GRAY)
+            }
         }
 
         if game_state == 0 {
