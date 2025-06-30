@@ -48,6 +48,7 @@ release/
 
 # Executables
 snake/snake
+breakout/breakout
 
 # IDE specific
 .vscode/
